@@ -1,8 +1,11 @@
 // ==UserScript==
 // @name         Substack Editor Helper
-// @namespace    http://tampermonkey.net/
-// @version      2024-01-22
+// @version      2024-01-24
 // @description  Make Substack Editor easier to import
+// @homepage     https://github.com/ChrisTorng/DocsConverter/
+// @source       https://raw.githubusercontent.com/ChrisTorng/DocsConverter/main/SubstackEditorHelper.js
+// @downloadURL  https://raw.githubusercontent.com/ChrisTorng/DocsConverter/main/SubstackEditorHelper.js
+// @updateURL    https://raw.githubusercontent.com/ChrisTorng/DocsConverter/main/SubstackEditorHelper.js
 // @author       ChrisTorng
 // @match        https://*.substack.com/publish/post/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
@@ -12,18 +15,20 @@
 (function() {
     'use strict';
 
+    // This event got fired after pasted into the editor and converted by Substack
     document.addEventListener('paste', function(e) {
         e.preventDefault();
         const html = (e.clipboardData || window.clipboardData).getData('text/html');
         if(html){
-//            document.execCommand('insertHTML', false, html);
+            // document.execCommand('insertHTML', false, html);
             const editor = document.querySelector('[data-testid="editor"]');
             console.log(editor.innerHTML);
 
+            // Dealing with footnote links, not working now
             var links = editor.querySelectorAll('a[target="_blank"]');
             links.forEach(function(link) {
                 link.removeAttribute('target');
-                link.innerHTML += "replaced";
+                link.innerHTML += "(replaced)";
             });
 
             console.log(editor.innerHTML);
@@ -31,7 +36,7 @@
         else {
             const text = (e.clipboardData || window.clipboardData).getData('text');
             console.log(text);
-            document.execCommand('insertText', false, text);
+            // document.execCommand('insertText', false, text);
         }
     });
 })();
