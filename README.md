@@ -1,5 +1,6 @@
 # DocsConverter
-For Google Docs to Substack converting tool
+
+For Google Docs to Substack converting tool.
 
 My [previous experience](https://github.com/ChrisTorng/DocsConverter/discussions/2) on converting tool.
 

@@ -1,11 +1,9 @@
 // ==UserScript==
 // @name         Substack Editor Helper
-// @version      2024-01-24
+// @version      2024-01-24_0.1.0
 // @description  Make Substack Editor easier to import
 // @homepage     https://github.com/ChrisTorng/DocsConverter/
-// @source       https://raw.githubusercontent.com/ChrisTorng/DocsConverter/main/SubstackEditorHelper.js
-// @downloadURL  https://raw.githubusercontent.com/ChrisTorng/DocsConverter/main/SubstackEditorHelper.js
-// @updateURL    https://raw.githubusercontent.com/ChrisTorng/DocsConverter/main/SubstackEditorHelper.js
+// @downloadURL  https://github.com/ChrisTorng/DocsConverter/raw/main/SubstackEditorHelper.user.js
 // @author       ChrisTorng
 // @match        https://*.substack.com/publish/post/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
