@@ -2,7 +2,7 @@
 
 For Google Docs to Substack converting tool.
 
-My [previous experience](discussions/2) on converting tool.
+My [previous experience](https://github.com/ChrisTorng/DocsConverter/discussions/2) on converting tool.
 
 [My initial tests](https://github.com/ChrisTorng/DocsConverter/discussions/3) and [Current Plan](https://github.com/ChrisTorng/DocsConverter/discussions/4).
 
