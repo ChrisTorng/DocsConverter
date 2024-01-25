@@ -28,4 +28,4 @@ Test
 ----
 Download [raw MinimalTest.html](https://github.com/ChrisTorng/DocsConverter/raw/main/MinimalTest.html) and save as .html. Open it in browser, select all and copy the content.
 
-Create a [Substack](https://substack.com) account. Create a new post. Paste the copied html content into content editor. You should see hyperlinks have "(replaced)" text attached, proving that this script is working. You can see F12 Development Tool's Console output for details.
+Create a [Substack](https://substack.com) account. Create a new post. Paste the copied html content into content editor. You should see hyperlinks have "(replaced)" text attached, proving that this script is working. You can see F12 Development Tool's Console output for more details.
