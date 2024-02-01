@@ -13,6 +13,11 @@
 (function() {
     'use strict';
 
+    const subscribeNowRegEx = /<p>\r?\n?\[\[SUBSCRIBE NOW\]\]\r?\n?<\/p>\r?\n?/g;
+    const subscribeNowHtml = `<p class="button-wrapper"
+data-attrs="{&quot;url&quot;:&quot;%%checkout_url%%&quot;,&quot;text&quot;:&quot;Subscribe now&quot;,&quot;action&quot;:null,&quot;class&quot;:null}"
+data-component-name="ButtonCreateButton"><a class="button primary" href="%%checkout_url%%"><span>Subscribe now</span></a></p>`;
+
     // This event got fired after pasted into the editor and converted by Substack
     document.addEventListener('paste', function(e) {
         e.preventDefault();
@@ -26,12 +31,14 @@
         const editor = document.querySelector('[data-testid="editor"]');
         console.log(`Originally: ${editor.innerHTML}`);
 
+        editor.innerHTML = editor.innerHTML.replace(subscribeNowRegEx, subscribeNowHtml);
+
         // Dealing with footnote links, not working now
-        var links = editor.querySelectorAll('a[target="_blank"]');
-        links.forEach(function(link) {
-            link.removeAttribute('target');
-            link.innerHTML += "(replaced)";
-        });
+        // var links = editor.querySelectorAll('a[target="_blank"]');
+        // links.forEach(function(link) {
+        //     link.removeAttribute('target');
+        //     link.innerHTML += "(replaced)";
+        // });
 
         console.log(`Processed: ${editor.innerHTML}`);
     });
