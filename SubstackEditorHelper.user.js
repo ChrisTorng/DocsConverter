@@ -31,7 +31,8 @@
 
     // This event got fired after pasted into the editor and converted by Substack
     document.addEventListener('paste', function(e) {
-        if (e.target.tagName !== 'BR') {
+        const editor = document.querySelector('[data-testid="editor"]');
+        if (!editor.contains(e.target)) {
             console.log('Not in the editor');
             return;
         }
@@ -47,7 +48,6 @@
         console.log(`Pasted: ${html}`);
 
         // document.execCommand('insertHTML', false, html);
-        const editor = document.querySelector('[data-testid="editor"]');
         console.log(`editor before: ${editor.innerHTML}`);
 
         // Replace all replacements
