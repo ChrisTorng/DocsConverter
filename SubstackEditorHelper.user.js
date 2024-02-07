@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Substack Editor Helper
-// @version      2024-02-03_0.1.2
+// @version      2024-02-08_0.1.3
 // @description  Make Substack Editor easier to import
 // @homepage     https://github.com/ChrisTorng/DocsConverter/
 // @downloadURL  https://github.com/ChrisTorng/DocsConverter/raw/main/SubstackEditorHelper.user.js
@@ -18,6 +18,9 @@
         // Subscribe now button
         { regex: /<p>\r?\n?\[\[SUBSCRIBE NOW\]\]\r?\n?<\/p>\r?\n?/g,
           replacement: `<p class="button-wrapper" data-attrs="{&quot;url&quot;:&quot;%%checkout_url%%&quot;,&quot;text&quot;:&quot;Subscribe now&quot;,&quot;action&quot;:null,&quot;class&quot;:null}" data-component-name="ButtonCreateButton"><a class="button primary" href="%%checkout_url%%"><span>Subscribe now</span></a></p>` },
+        // Image caption
+        { regex: /<figure>(.*)<\/figure><\/div><p>\r?\n?\[\[CAPTION: (.*)\]\]\r?\n?<\/p>/g,
+          replacement: `<figure>$1<figcaption class="image-caption">$2</figcaption></figure>` },
         // Footnotes from
         { regex: /<a target="_blank" rel="footnote" href="https:\/\/[^\/]*\/[a-zA-Z]*#fn(\d+)"><sup>(\d+)<\/sup><\/a>/g,
           replacement: `<a class="footnote-anchor" data-component-name="FootnoteAnchorToDOM" id="footnote-anchor-$1" href="#footnote-$1" target="_self">$1</a>` },
@@ -32,7 +35,7 @@
     // This event got fired after pasted into the editor and converted by Substack
     document.addEventListener('paste', function(e) {
         const editor = document.querySelector('[data-testid="editor"]');
-        if (!editor.contains(e.target)) {
+        if (e.target.tagName !== 'BR' && !editor.contains(e.target)) {
             console.log('Not in the editor');
             return;
         }
