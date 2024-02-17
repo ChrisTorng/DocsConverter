@@ -44,29 +44,36 @@
     const replacements = [
         { name: 'Subscribe now button',
           regex: /<p>(?:<em>)?\[\[Subscribe now\]\](?:<\/em>)?<\/p>/g,
-          replacement: `<p class="button-wrapper" data-attrs="{&quot;url&quot;:&quot;%%checkout_url%%&quot;,&quot;text&quot;:&quot;Subscribe now&quot;,&quot;action&quot;:null,&quot;class&quot;:null}" data-component-name="ButtonCreateButton"><a class="button primary" href="%%checkout_url%%"><span>Subscribe now</span></a></p>` },
+          replacement: '<p class="button-wrapper" data-attrs="{&quot;url&quot;:&quot;%%checkout_url%%&quot;,&quot;text&quot;:&quot;Subscribe now&quot;,&quot;action&quot;:null,&quot;class&quot;:null}" data-component-name="ButtonCreateButton"><a class="button primary" href="%%checkout_url%%"><span>Subscribe now</span></a></p>' },
         { name: 'Share this post button',
           regex: /<p>(?:<em>)?\[\[Share this post\]\](?:<\/em>)?<\/p>/g,
-          replacement: `<p class="button-wrapper" data-attrs="{&quot;url&quot;:&quot;%%share_url%%&quot;,&quot;text&quot;:&quot;Share&quot;,&quot;action&quot;:null,&quot;class&quot;:null}" data-component-name="ButtonCreateButton"><a class="button primary" href="%%share_url%%"><span>Share</span></a></p>` },
+          replacement: '<p class="button-wrapper" data-attrs="{&quot;url&quot;:&quot;%%share_url%%&quot;,&quot;text&quot;:&quot;Share&quot;,&quot;action&quot;:null,&quot;class&quot;:null}" data-component-name="ButtonCreateButton"><a class="button primary" href="%%share_url%%"><span>Share</span></a></p>' },
         { name: 'Image caption',
           regex: /<figure>((?:(?!<\/figure>).)*)<\/figure><\/div><p>\[\[Image caption: (.*?)\]\]<\/p>/g,
-          replacement: `<figure>$1<figcaption class="image-caption">$2</figcaption></figure>` },
+          replacement: '<figure>$1<figcaption class="image-caption">$2</figcaption></figure>' },
         { name: 'Footnotes from',
           regex: /<a target="_blank" rel="footnote" href="https:\/\/[^\/]*\/[a-zA-Z]*#fn(\d+)"><sup>(\d+)<\/sup><\/a>/g,
-          replacement: `<a class="footnote-anchor" data-component-name="FootnoteAnchorToDOM" id="footnote-anchor-$1" href="#footnote-$1" target="_self">[[$1]]</a>` },
+          replacement: '[[$1]]' },
+        //   { name: 'Footnotes from',
+        //   regex: /<a target="_blank" rel="footnote" href="https:\/\/[^\/]*\/[a-zA-Z]*#fn(\d+)"><sup>(\d+)<\/sup><\/a>/g,
+        //   replacement: '<a class="footnote-anchor" data-component-name="FootnoteAnchorToDOM" id="footnote-anchor-$1" href="#footnote-$1" target="_self">[[$1]]</a>' },
+        // { name: 'Combined footnotes',
+        //   regex: /<a target="_blank" rel="footnote" href="https:\/\/[^\/]*\/[a-zA-Z]*#fn(\d+)"><sup>(\d+)<\/sup><\/a>(.*)(?:<ol>)?<li><p>((?:(?!&nbsp;).)*)&nbsp;<a\s+target="_blank"\s+rel="noopener noreferrer nofollow".href="https:\/\/([A-Za-z0-9\-\.\/]*)#fnref(\d*)">↩<\/a><\/p><\/li>(?:<\/ol>)?/g,
+        //   replacement: '<a class="footnote-anchor" data-component-name="FootnoteAnchorToDOM" id="footnote-anchor-$1" href="#footnote-$1" target="_self">[[$1: $5]]</a>$4' },
         // { name: 'Temp Footnotes to',
-        //   regex: /(?:<ol>)?<li><p>(.*?)&nbsp;<a\s+target="_blank"\s+rel="noopener noreferrer nofollow".href="https:\/\/([A-Za-z0-9\-\.\/]*)#fnref(\d*)">↩<\/a><\/p><\/li>(?:<\/ol>)?/g,
-        //   replacement: `$3. <em>$1</em><br/>` },
+        //   regex: /(?:<ol>)?<li><p>((?:(?!&nbsp;).)*)&nbsp;<a\s+target="_blank"\s+rel="noopener noreferrer nofollow".href="https:\/\/([A-Za-z0-9\-\.\/]*)#fnref(\d*)">↩<\/a><\/p><\/li>(?:<\/ol>)?/g,
+        //   replacement: '$3. <em>$1</em><br/>' },
         // { name: 'Footnotes section start',
         //   regex: /<h2>Notes<\/h2><hr contenteditable="false"><ol>(.*)<\/ol>/g,
         //   replacement: '$1' },
         // { name: 'Footnotes to',
         //   regex: /<li><p>([^<]*)<a target="_blank" rel="noopener noreferrer nofollow" href="https:\/\/[^\/]*\/[a-zA-Z]*#fnref(\d+)">↩<\/a><\/p><\/li>/g,
-        //   replacement: `<div class="footnote" data-component-name="FootnoteToDOM"><a id="footnote-$2" href="#footnote-anchor-$2" class="footnote-number" contenteditable="false" target="_self">$2</a><div class="footnote-content"><p>$1</p></div></div>` },
+        //   replacement: '<div class="footnote" data-component-name="FootnoteToDOM"><a id="footnote-$2" href="#footnote-anchor-$2" class="footnote-number" contenteditable="false" target="_self">$2</a><div class="footnote-content"><p>$1</p></div></div>' },
     ];
 
     const footnotesSection = /<h2>Notes<\/h2><hr contenteditable="false"><ol>(.*)<\/ol>/g;
     const tempFootnotesTo = /(?:<ol>)?<li><p>((?:(?!&nbsp;).)*)&nbsp;<a\s+target="_blank"\s+rel="noopener noreferrer nofollow".href="https:\/\/([A-Za-z0-9\-\.\/]*)#fnref(\d*)">↩<\/a><\/p><\/li>(?:<\/ol>)?/g;
+    const footnoteSectionStart = /<h2>Notes<\/h2><hr contenteditable="false">/g;
 
     // This event got fired after pasted into the editor and converted by Substack
     document.addEventListener('paste', function(e) {
@@ -88,30 +95,37 @@
 
     function convert() {
         // document.execCommand('insertHTML', false, html);
-        console.log(`editor before: ${editor.innerHTML}`);
+        let html = editor.innerHTML;
+        console.log(`editor before: ${html}`);
 
         replacements.forEach(function(replacement) {
-            var count = (editor.innerHTML.match(replacement.regex) || []).length;
+            var count = (html.match(replacement.regex) || []).length;
             if (count > 0) {
                 console.log(`${replacement.name}: ${count} occurrences`);
-                editor.innerHTML = editor.innerHTML.replace(replacement.regex, replacement.replacement);
+                html = html.replace(replacement.regex, replacement.replacement);
             }
         });
 
-        editor.innerHTML = convertTempFootnotesTo(editor.innerHTML);
+        html = combineFootnotesTo(html);
 
+        editor.innerHTML = html;
         console.log(`editor after: ${editor.innerHTML}`);
     }
 
-    function convertTempFootnotesTo(text) {
+    function combineFootnotesTo(text) {
         const notesSections = text.match(footnotesSection);
         if (notesSections) {
-            const notesSection = notesSections[0]; // get <ol>...</ol> part
+            const notesSection = notesSections[0]; // 获取 <ol>...</ol> 部分
             const replacedNotesSection = notesSection.replace(tempFootnotesTo, (match, p1, p2, p3) => {
-                return `<s><b>${p3}.</b></s> <em>${p1}</em><br/>`;
+                const footnoteRefRegex = new RegExp(`\\[\\[${p3}\\]\\]`, 'g');
+                text = text.replace(footnoteRefRegex, `[[${p3}: ${p1}]]`);
+                return '';
             });
 
-            return text.replace(footnotesSection, replacedNotesSection);
+            text = text.replace(footnotesSection, replacedNotesSection);
+            text = text.replace(footnoteSectionStart, '');
         }
+
+        return text;
     }
 })();
