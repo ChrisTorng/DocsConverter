@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Substack Editor Helper
-// @version      2024-02-08_0.1.3
+// @version      2024-02-17_0.1.4
 // @description  Make Substack Editor easier to import
 // @homepage     https://github.com/ChrisTorng/DocsConverter/
 // @downloadURL  https://github.com/ChrisTorng/DocsConverter/raw/main/SubstackEditorHelper.user.js
