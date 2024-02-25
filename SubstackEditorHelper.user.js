@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Substack Editor Helper
-// @version      2024-02-17_0.1.4
+// @version      2024-02-24_0.1.5
 // @description  Make Substack Editor easier to import
 // @homepage     https://github.com/ChrisTorng/DocsConverter/
 // @downloadURL  https://github.com/ChrisTorng/DocsConverter/raw/main/SubstackEditorHelper.user.js
@@ -75,23 +75,23 @@
     const tempFootnotesTo = /(?:<ol>)?<li><p>((?:(?!&nbsp;).)*)&nbsp;<a\s+target="_blank"\s+rel="noopener noreferrer nofollow".href="https:\/\/([A-Za-z0-9\-\.\/]*)#fnref(\d*)">↩<\/a><\/p><\/li>(?:<\/ol>)?/g;
     const footnoteSectionStart = /<h2>Notes<\/h2><hr contenteditable="false">/g;
 
-    // This event got fired after pasted into the editor and converted by Substack
-    document.addEventListener('paste', function(e) {
-        if (e.target.tagName !== 'BR' && !editor.contains(e.target)) {
-            console.log('Not in the editor');
-            return;
-        }
+    // // This event got fired after pasted into the editor and converted by Substack
+    // document.addEventListener('paste', function(e) {
+    //     if (e.target.tagName !== 'BR' && !editor.contains(e.target)) {
+    //         console.log('Not in the editor');
+    //         return;
+    //     }
 
-        let html = (e.clipboardData || window.clipboardData).getData('text/html');
-        if (!html) {
-            console.log('No HTML data');
-            return;
-        }
+    //     let html = (e.clipboardData || window.clipboardData).getData('text/html');
+    //     if (!html) {
+    //         console.log('No HTML data');
+    //         return;
+    //     }
 
-        e.preventDefault();
+    //     e.preventDefault();
 
-        console.log(`Pasted: ${html}`);
-    });
+    //     console.log(`Pasted: ${html}`);
+    // });
 
     function convert() {
         // document.execCommand('insertHTML', false, html);
@@ -115,14 +115,17 @@
     function combineFootnotesTo(text) {
         const notesSections = text.match(footnotesSection);
         if (notesSections) {
-            const notesSection = notesSections[0]; // 获取 <ol>...</ol> 部分
+            const notesSection = notesSections[0]; // get <ol>...</ol>
             const replacedNotesSection = notesSection.replace(tempFootnotesTo, (match, p1, p2, p3) => {
+                // replace the footnote from with the combined footnote
                 const footnoteRefRegex = new RegExp(`\\[\\[${p3}\\]\\]`, 'g');
                 text = text.replace(footnoteRefRegex, `[[${p3}: ${p1}]]`);
-                return '';
+                return ''; // remove the temp footnote to
             });
 
+            // replace the original notes section with the combined notes section
             text = text.replace(footnotesSection, replacedNotesSection);
+            // remove the notes section start
             text = text.replace(footnoteSectionStart, '');
         }
 
