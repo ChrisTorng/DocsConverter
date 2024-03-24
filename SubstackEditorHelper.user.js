@@ -1,39 +1,67 @@
 // ==UserScript==
 // @name         Substack Editor Helper
-// @version      2024-02-24_0.1.5
+// @version      2024-03-24_0.1.6
 // @description  Make Substack Editor easier to import
 // @homepage     https://github.com/ChrisTorng/DocsConverter/
 // @downloadURL  https://github.com/ChrisTorng/DocsConverter/raw/main/SubstackEditorHelper.user.js
 // @updateURL    https://github.com/ChrisTorng/DocsConverter/raw/main/SubstackEditorHelper.user.js
 // @author       ChrisTorng
 // @match        https://*.substack.com/publish/post/*
+// @include      */DocsConverter/UnitTest.html
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
 // @grant        none
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
 
+    const executeAsyncDelay = 0;
+    const maxFootnoteIndex = 100;
     let editor;
+    let moreButton;
+    let addFootnoteButton;
+    const range = document.createRange();
+    const sel = window.getSelection();
+
+    const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+    });
+
+    function createButton(title, onclickAsync) {
+        const newButtonGroup = document.createElement('div');
+        newButtonGroup.className = 'tiptap-menu-button-group';
+        const newButton = document.createElement('button');
+        newButton.className = 'tiptap-menu-button';
+        newButton.style.fontWeight = '600';
+        newButton.textContent = title;
+
+        newButton.onclick = async (event) => {
+            try {
+                await onclickAsync(event);
+            } catch (error) {
+                console.error('Async onclick handler error:', error);
+            }
+        };
+
+        newButtonGroup.appendChild(newButton);
+        return newButtonGroup;
+    }
 
     // look for the last "<div class="tiptap-menu-button-group">", insert a new button after it
     // use setInterval to check if the button group is ready, until it's ready, then insert the new button and stop the interval
     const addConvertButtonIntervalId = setInterval(() => {
         const buttonGroups = document.querySelectorAll('.tiptap-menu-button-group');
         if (buttonGroups.length > 0) {
-            const newButtonGroup = document.createElement('div');
-            newButtonGroup.className = 'tiptap-menu-button-group';
-            const newButton = document.createElement('button');
-            newButton.className = 'tiptap-menu-button';
-            newButton.style = 'font-weight: 600';
-            newButton.textContent = 'Convert';
-            newButton.onclick = convert;
-            newButtonGroup.appendChild(newButton);
-
+            const convertButton = createButton('Convert', convert);
+            const fnButton = createButton('Footnotes', searchAndAddAllFootnotes);
             const lastButtonGroup = buttonGroups[buttonGroups.length - 1];
-            lastButtonGroup.parentNode.insertBefore(newButtonGroup, lastButtonGroup.nextSibling);
+            lastButtonGroup.parentNode.insertBefore(fnButton, lastButtonGroup.nextSibling);
+            lastButtonGroup.parentNode.insertBefore(convertButton, lastButtonGroup.nextSibling);
 
             editor = document.querySelector('[data-testid="editor"]');
+            moreButton = document.querySelector('[data-testid="more-submenu"]');
+            addFootnoteButton = document.querySelector('div.tiptap-menu-button[title="Insert footnote"]');
 
             clearInterval(addConvertButtonIntervalId);
         } else {
@@ -42,18 +70,26 @@
     }, 500);
 
     const replacements = [
-        { name: 'Subscribe now button',
-          regex: /<p>(?:<em>)?\[\[Subscribe now\]\](?:<\/em>)?<\/p>/g,
-          replacement: '<p class="button-wrapper" data-attrs="{&quot;url&quot;:&quot;%%checkout_url%%&quot;,&quot;text&quot;:&quot;Subscribe now&quot;,&quot;action&quot;:null,&quot;class&quot;:null}" data-component-name="ButtonCreateButton"><a class="button primary" href="%%checkout_url%%"><span>Subscribe now</span></a></p>' },
-        { name: 'Share this post button',
-          regex: /<p>(?:<em>)?\[\[Share this post\]\](?:<\/em>)?<\/p>/g,
-          replacement: '<p class="button-wrapper" data-attrs="{&quot;url&quot;:&quot;%%share_url%%&quot;,&quot;text&quot;:&quot;Share&quot;,&quot;action&quot;:null,&quot;class&quot;:null}" data-component-name="ButtonCreateButton"><a class="button primary" href="%%share_url%%"><span>Share</span></a></p>' },
-        { name: 'Image caption',
-          regex: /<figure>((?:(?!<\/figure>).)*)<\/figure><\/div><p>\[\[Image caption: (.*?)\]\]<\/p>/g,
-          replacement: '<figure>$1<figcaption class="image-caption">$2</figcaption></figure>' },
-        { name: 'Footnotes from',
-          regex: /<a target="_blank" rel="footnote" href="https:\/\/[^\/]*\/[a-zA-Z]*#fn(\d+)"><sup>(\d+)<\/sup><\/a>/g,
-          replacement: '[[$1]]' },
+        {
+            name: 'Subscribe now button',
+            regex: /<p>(?:<em>)?\[\[Subscribe now\]\](?:<\/em>)?<\/p>/g,
+            replacement: '<p class="button-wrapper" data-attrs="{&quot;url&quot;:&quot;%%checkout_url%%&quot;,&quot;text&quot;:&quot;Subscribe now&quot;,&quot;action&quot;:null,&quot;class&quot;:null}" data-component-name="ButtonCreateButton"><a class="button primary" href="%%checkout_url%%"><span>Subscribe now</span></a></p>'
+        },
+        {
+            name: 'Share this post button',
+            regex: /<p>(?:<em>)?\[\[Share this post\]\](?:<\/em>)?<\/p>/g,
+            replacement: '<p class="button-wrapper" data-attrs="{&quot;url&quot;:&quot;%%share_url%%&quot;,&quot;text&quot;:&quot;Share&quot;,&quot;action&quot;:null,&quot;class&quot;:null}" data-component-name="ButtonCreateButton"><a class="button primary" href="%%share_url%%"><span>Share</span></a></p>'
+        },
+        {
+            name: 'Image caption',
+            regex: /<figure>((?:(?!<\/figure>).)*)<\/figure><\/div><p>\[\[Image caption: (.*?)\]\]<\/p>/g,
+            replacement: '<figure>$1<figcaption class="image-caption">$2</figcaption></figure>'
+        },
+        {
+            name: 'Footnotes from',
+            regex: /<a target="_blank" rel="footnote" href="https:\/\/[^\/]*\/[a-zA-Z]*#fn(\d+)"><sup>(\d+)<\/sup><\/a>/g,
+            replacement: '[[$1]]'
+        },
         //   { name: 'Footnotes from',
         //   regex: /<a target="_blank" rel="footnote" href="https:\/\/[^\/]*\/[a-zA-Z]*#fn(\d+)"><sup>(\d+)<\/sup><\/a>/g,
         //   replacement: '<a class="footnote-anchor" data-component-name="FootnoteAnchorToDOM" id="footnote-anchor-$1" href="#footnote-$1" target="_self">[[$1]]</a>' },
@@ -93,12 +129,12 @@
     //     console.log(`Pasted: ${html}`);
     // });
 
-    function convert() {
+    async function convert() {
         // document.execCommand('insertHTML', false, html);
         let html = editor.innerHTML;
         console.log(`editor before: ${html}`);
 
-        replacements.forEach(function(replacement) {
+        replacements.forEach(function (replacement) {
             var count = (html.match(replacement.regex) || []).length;
             if (count > 0) {
                 console.log(`${replacement.name}: ${count} occurrences`);
@@ -110,6 +146,172 @@
 
         editor.innerHTML = html;
         console.log(`editor after: ${editor.innerHTML}`);
+    }
+
+    async function traverseNodes(node, callback) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            return await callback(node);
+        }
+
+        var child = node.firstChild;
+        while (child) {
+            if (await traverseNodes(child, callback)) {
+                return true;
+            }
+            child = child.nextSibling;
+        }
+
+        return false;
+    }
+
+    let currentFootnoteIndex = 1;
+    async function searchAndAddOneFootnote(node, range, sel) {
+        const searchText = `[[${currentFootnoteIndex}: `;
+        const text = node.nodeValue;
+        const startPos = text.indexOf(searchText);
+        console.log(`searchAndAddOneFootnote: ${node.nodeType}, ${node.nodeValue}, ${searchText}, ${startPos}`);
+
+        if (startPos === -1) {
+            console.log('startPos not found');
+            return false;
+        }
+
+        const endPos = text.indexOf(']]', startPos);
+        if (endPos === -1) {
+            console.log('endPos not found');
+            select(node, startPos);
+            await executeAsync(() => moreButton.dispatchEvent(clickEvent));
+            await executeAsync(() => addFootnoteButton.dispatchEvent(clickEvent));
+            select(editor, 0);
+            console.log('searchAndAddOneFootnote: done');
+            return true;
+        }
+
+        const footnoteText = text.substring(startPos + searchText.length, endPos);
+        console.log(`startPos: ${startPos}, endPos: ${endPos}, footnoteText: ${footnoteText}`);
+
+        select(node, startPos, endPos + 2);
+        console.log(`range: ${range}, sel: ${sel}, ${sel.toString()}`);
+        range.deleteContents();
+
+        await executeAsync(() => moreButton.dispatchEvent(clickEvent));
+        await executeAsync(() => addFootnoteButton.dispatchEvent(clickEvent));
+        await executeAsync(() => insertTextAtCursor(footnoteText));
+        await executeAsync(() => deleteFollowingEmptyParagraph());
+        select(editor, 0);
+        console.log('searchAndAddOneFootnote: done');
+        return true;
+    }
+
+    async function searchAndAddAllFootnotes() {
+        editor.focus();
+        currentFootnoteIndex = 1;
+
+        while (await traverseNodes(editor, async node => {
+            console.log(`current node: ${node.nodeType}, ${node.nodeValue}`);
+            return await searchAndAddOneFootnote(node, range, sel)
+        })) { // || currentFootnoteIndex < maxFootnoteIndex) {
+            currentFootnoteIndex++;
+        }
+
+        // await traverseNodes(editor, async node => {
+        //     console.log(`current node: ${node.nodeType}, ${node.nodeValue}`);
+        //     return await searchAndAddOneFootnote(node, range, sel)
+        // });
+    }
+
+    function executeAsync(callback) {
+        try {
+            console.log('executeAsync', callback.toString());
+            callback();
+            console.log('executeAsync done', callback.toString());
+            return new Promise(resolve => setTimeout(resolve, executeAsyncDelay));
+        } catch (e) {
+            console.error(e);
+            return Promise.reject(e);
+        }
+    }
+
+    function insertTextAtCursor(text) {
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
+
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+
+        const textNode = document.createTextNode(text);
+        range.insertNode(textNode);
+
+        range.setStartAfter(textNode);
+        range.setEndAfter(textNode);
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
+
+    function deleteFollowingEmptyParagraph() {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+    
+        const range = selection.getRangeAt(0);
+        let container = range.endContainer;
+    
+        if (container.nodeType === Node.TEXT_NODE && range.endOffset !== container.length) {
+            console.log('Not at the end of the text node');
+            return;
+        }
+    
+        while (container.nodeType === Node.TEXT_NODE) {
+            container = container.parentNode;
+        }
+    
+        let nextNode = container.nextSibling;
+    
+        if (nextNode && nextNode.nodeType === Node.ELEMENT_NODE && nextNode.tagName === 'P' && nextNode.textContent.trim() === '') {
+            nextNode.remove();
+        }
+    }
+
+    // function jumpToFootnoteAnchor() {
+    //     const sel = window.getSelection();
+    //     if (!sel.rangeCount) return; // 确保有选区
+
+    //     let node = sel.getRangeAt(0).startContainer;
+
+    //     // 向上遍历找到最近的包含 class='footnote' 的父元素
+    //     const footnoteElem = node.nodeType === 3 ? node.parentNode : node; // 如果当前节点是文本节点，从其父节点开始
+    //     const footnoteContainer = footnoteElem.closest('.footnote');
+
+    //     if (!footnoteContainer) {
+    //         console.log("Footnote container not found.");
+    //         return;
+    //     }
+
+    //     // 在 footnoteContainer 中找到 <a> 元素
+    //     const anchor = footnoteContainer.querySelector('a.footnote-number');
+    //     if (!anchor || !anchor.href) {
+    //         console.log("Anchor element or href not found.");
+    //         return;
+    //     }
+
+    //     //anchor.dispatchEvent(clickEvent);
+    // }
+
+    function select(node, start, end = start) {
+        sel.removeAllRanges();
+        range.setStart(node, start);
+        range.setEnd(node, end);
+        console.log(`select: ${node}, ${start}, ${end}, ${range}, ${sel}, ${sel.toString()}`);
+        sel.addRange(range);
+    }
+
+    async function test() {
+        //editor.focus();
+        await executeAsync(() => moreButton.dispatchEvent(clickEvent));
+        await executeAsync(() => addFootnoteButton.dispatchEvent(clickEvent));
+        await executeAsync(() => insertTextAtCursor('test'));
+        await executeAsync(() => deleteFollowingEmptyParagraph());
+        select(editor, 0);
+        // await executeAsync(() => jumpToFootnoteAnchor());
     }
 
     function combineFootnotesTo(text) {
