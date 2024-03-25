@@ -16,7 +16,6 @@
     'use strict';
 
     const executeAsyncDelay = 0;
-    const maxFootnoteIndex = 100;
     let editor;
     let moreButton;
     let addFootnoteButton;
@@ -130,7 +129,6 @@
     // });
 
     async function convert() {
-        // document.execCommand('insertHTML', false, html);
         let html = editor.innerHTML;
         console.log(`editor before: ${html}`);
 
@@ -164,12 +162,11 @@
         return false;
     }
 
-    let currentFootnoteIndex = 1;
-    async function searchAndAddOneFootnote(node, range, sel) {
-        const searchText = `[[${currentFootnoteIndex}: `;
+    async function searchAndAddOneFootnote(index, node, range, sel) {
+        const searchText = `[[${index}: `;
         const text = node.nodeValue;
         const startPos = text.indexOf(searchText);
-        console.log(`searchAndAddOneFootnote: ${node.nodeType}, ${node.nodeValue}, ${searchText}, ${startPos}`);
+        console.log(`searchAndAddOneFootnote: ${index}, ${node.nodeType}, ${node.nodeValue}, ${searchText}, ${startPos}`);
 
         if (startPos === -1) {
             console.log('startPos not found');
@@ -196,7 +193,7 @@
 
         await executeAsync(() => moreButton.dispatchEvent(clickEvent));
         await executeAsync(() => addFootnoteButton.dispatchEvent(clickEvent));
-        await executeAsync(() => insertTextAtCursor(footnoteText));
+        await executeAsync(() => insertHtmlAtCursor(footnoteText));
         await executeAsync(() => deleteFollowingEmptyParagraph());
         select(editor, 0);
         console.log('searchAndAddOneFootnote: done');
@@ -205,26 +202,21 @@
 
     async function searchAndAddAllFootnotes() {
         editor.focus();
-        currentFootnoteIndex = 1;
+        let currentFootnoteIndex = 1;
 
         while (await traverseNodes(editor, async node => {
             console.log(`current node: ${node.nodeType}, ${node.nodeValue}`);
-            return await searchAndAddOneFootnote(node, range, sel)
-        })) { // || currentFootnoteIndex < maxFootnoteIndex) {
+            return await searchAndAddOneFootnote(currentFootnoteIndex, node, range, sel)
+        })) {
             currentFootnoteIndex++;
         }
-
-        // await traverseNodes(editor, async node => {
-        //     console.log(`current node: ${node.nodeType}, ${node.nodeValue}`);
-        //     return await searchAndAddOneFootnote(node, range, sel)
-        // });
     }
 
     function executeAsync(callback) {
         try {
-            console.log('executeAsync', callback.toString());
+            // console.log('executeAsync', callback.toString());
             callback();
-            console.log('executeAsync done', callback.toString());
+            // console.log('executeAsync done', callback.toString());
             return new Promise(resolve => setTimeout(resolve, executeAsyncDelay));
         } catch (e) {
             console.error(e);
@@ -232,20 +224,26 @@
         }
     }
 
-    function insertTextAtCursor(text) {
+    function insertHtmlAtCursor(html) {
         const sel = window.getSelection();
         if (!sel.rangeCount) return;
 
         const range = sel.getRangeAt(0);
         range.deleteContents();
 
-        const textNode = document.createTextNode(text);
-        range.insertNode(textNode);
+        const fragment = range.createContextualFragment(html);
+        range.insertNode(fragment);
 
-        range.setStartAfter(textNode);
-        range.setEndAfter(textNode);
-        sel.removeAllRanges();
-        sel.addRange(range);
+        if (fragment.childNodes.length > 0) {
+            const lastInsertedNode = fragment.childNodes[fragment.childNodes.length - 1];
+            const newRange = document.createRange();
+    
+            newRange.setStartAfter(lastInsertedNode);
+            newRange.setEndAfter(lastInsertedNode);
+    
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+        }
     }
 
     function deleteFollowingEmptyParagraph() {
@@ -308,10 +306,17 @@
         //editor.focus();
         await executeAsync(() => moreButton.dispatchEvent(clickEvent));
         await executeAsync(() => addFootnoteButton.dispatchEvent(clickEvent));
-        await executeAsync(() => insertTextAtCursor('test'));
+        await executeAsync(() => insertHtmlAtCursor('test'));
         await executeAsync(() => deleteFollowingEmptyParagraph());
         select(editor, 0);
         // await executeAsync(() => jumpToFootnoteAnchor());
+    }
+
+    function escapeHTML(htmlString) {
+        return htmlString
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
     }
 
     function combineFootnotesTo(text) {
@@ -320,8 +325,9 @@
             const notesSection = notesSections[0]; // get <ol>...</ol>
             const replacedNotesSection = notesSection.replace(tempFootnotesTo, (match, p1, p2, p3) => {
                 // replace the footnote from with the combined footnote
+                const escapedHtml = escapeHTML(p1);
                 const footnoteRefRegex = new RegExp(`\\[\\[${p3}\\]\\]`, 'g');
-                text = text.replace(footnoteRefRegex, `[[${p3}: ${p1}]]`);
+                text = text.replace(footnoteRefRegex, `[[${p3}: ${escapedHtml}]]`);
                 return ''; // remove the temp footnote to
             });
 
