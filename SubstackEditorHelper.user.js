@@ -166,29 +166,29 @@
         const searchText = `[[${index}: `;
         const text = node.nodeValue;
         const startPos = text.indexOf(searchText);
-        console.log(`searchAndAddOneFootnote: ${index}, ${node.nodeType}, ${node.nodeValue}, ${searchText}, ${startPos}`);
+        // console.log(`searchAndAddOneFootnote: ${index}, ${node.nodeType}, ${node.nodeValue}, ${searchText}, ${startPos}`);
 
         if (startPos === -1) {
-            console.log('startPos not found');
+            // console.log('startPos not found');
             return false;
         }
 
         const endPos = text.indexOf(']]', startPos);
         if (endPos === -1) {
-            console.log('endPos not found');
+            // console.log('endPos not found');
             select(node, startPos);
             await executeAsync(() => moreButton.dispatchEvent(clickEvent));
             await executeAsync(() => addFootnoteButton.dispatchEvent(clickEvent));
             select(editor, 0);
-            console.log('searchAndAddOneFootnote: done');
+            console.log(`searchAndAddOneFootnote: found ${index} but endPos not found`);
             return true;
         }
 
         const footnoteText = text.substring(startPos + searchText.length, endPos);
-        console.log(`startPos: ${startPos}, endPos: ${endPos}, footnoteText: ${footnoteText}`);
+        // console.log(`startPos: ${startPos}, endPos: ${endPos}, footnoteText: ${footnoteText}`);
 
         select(node, startPos, endPos + 2);
-        console.log(`range: ${range}, sel: ${sel}, ${sel.toString()}`);
+        // console.log(`range: ${range}, sel: ${sel}, ${sel.toString()}`);
         range.deleteContents();
 
         await executeAsync(() => moreButton.dispatchEvent(clickEvent));
@@ -196,7 +196,7 @@
         await executeAsync(() => insertHtmlAtCursor(footnoteText));
         await executeAsync(() => deleteFollowingEmptyParagraph());
         select(editor, 0);
-        console.log('searchAndAddOneFootnote: done');
+        console.log(`searchAndAddOneFootnote: added ${index}: ${footnoteText}`);
         return true;
     }
 
@@ -205,7 +205,7 @@
         let currentFootnoteIndex = 1;
 
         while (await traverseNodes(editor, async node => {
-            console.log(`current node: ${node.nodeType}, ${node.nodeValue}`);
+            // console.log(`current node: ${node.nodeType}, ${node.nodeValue}`);
             return await searchAndAddOneFootnote(currentFootnoteIndex, node, range, sel)
         })) {
             currentFootnoteIndex++;
@@ -252,6 +252,7 @@
     
         const range = selection.getRangeAt(0);
         let container = range.endContainer;
+        console.log(`container: ${container}, ${container.nodeType}, ${container.tagName}, ${range.endOffset}, ${container.length}`);
     
         if (container.nodeType === Node.TEXT_NODE && range.endOffset !== container.length) {
             console.log('Not at the end of the text node');
@@ -260,12 +261,29 @@
     
         while (container.nodeType === Node.TEXT_NODE) {
             container = container.parentNode;
+            console.log('parent container:', container);
         }
     
         let nextNode = container.nextSibling;
-    
-        if (nextNode && nextNode.nodeType === Node.ELEMENT_NODE && nextNode.tagName === 'P' && nextNode.textContent.trim() === '') {
-            nextNode.remove();
+        console.log(`Next node: ${nextNode}, ${nextNode?.tagName}, ${nextNode?.textContent}`);
+        if (!nextNode) {
+            container = container.parentNode;
+            console.log('parent container:', container);
+            nextNode = container.nextSibling;
+            console.log(`Next node: ${nextNode}, ${nextNode?.tagName}, ${nextNode?.textContent}`);
+        }
+
+        if (nextNode && nextNode.nodeType === Node.ELEMENT_NODE) {
+            // check if nextNode is <div class="footnote-content">
+            if (nextNode.tagName === 'DIV' && nextNode.className === 'footnote-content') {
+                console.log('Next node is a footnote container');
+            }
+
+            if (nextNode.tagName === 'P' && nextNode.textContent.trim() === '') {
+                nextNode.remove();
+            } else {
+                console.log('Next node is not an empty paragraph');
+            }
         }
     }
 
@@ -298,7 +316,7 @@
         sel.removeAllRanges();
         range.setStart(node, start);
         range.setEnd(node, end);
-        console.log(`select: ${node}, ${start}, ${end}, ${range}, ${sel}, ${sel.toString()}`);
+        // console.log(`select: ${node}, ${start}, ${end}, ${range}, ${sel}, ${sel.toString()}`);
         sel.addRange(range);
     }
 
