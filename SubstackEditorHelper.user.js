@@ -15,7 +15,7 @@
 (function () {
     'use strict';
 
-    const executeAsyncDelay = 1000;
+    const executeAsyncDelay = 0;
     let editor;
     let moreButton;
     let addFootnoteButton;
@@ -74,6 +74,11 @@
     async function initEditor() {
         editor = document.querySelector('[data-testid="editor"]');
         moreButton = document.querySelector('[data-testid="more-submenu"]');
+        if (!moreButton) {
+            console.log('moreButton not ready');
+            retryInitEditor();
+            return;
+        }
 
         if (!addFootnoteButton) {
             addFootnoteButton = await getFootnoteButton();
@@ -100,8 +105,10 @@
         const buttonGroups = tiptapMenu[0].childNodes[0];
         const convertButton = createButton('Convert', convert);
         const fnButton = createButton('Footnotes', searchAndAddAllFootnotes);
+        // const testButton = createButton('Test', test);
         buttonGroups.appendChild(convertButton);
         buttonGroups.appendChild(fnButton);
+        // buttonGroups.appendChild(testButton);
     }
 
     // look for the last "<div class="tiptap-menu-button-group">", insert a new button after it
@@ -311,7 +318,7 @@
     
         let nextNode = container.nextSibling;
         console.log(`Next node: ${nextNode}, ${nextNode?.tagName}, ${nextNode?.textContent}`);
-        if (!nextNode) {
+        while (!nextNode) {
             container = container.parentNode;
             console.log('parent container:', container);
             nextNode = container.nextSibling;
@@ -319,11 +326,6 @@
         }
 
         if (nextNode && nextNode.nodeType === Node.ELEMENT_NODE) {
-            // check if nextNode is <div class="footnote-content">
-            if (nextNode.tagName === 'DIV' && nextNode.className === 'footnote-content') {
-                console.log('Next node is a footnote container');
-            }
-
             if (nextNode.tagName === 'P' && nextNode.textContent.trim() === '') {
                 nextNode.remove();
             } else {
@@ -369,6 +371,7 @@
         //editor.focus();
         await executeAsync(() => moreButton.dispatchEvent(clickEvent));
         await executeAsync(() => addFootnoteButton.dispatchEvent(clickEvent));
+        await executeAsync(() => moreButton.dispatchEvent(clickEvent));
         await executeAsync(() => insertHtmlAtCursor('test'));
         await executeAsync(() => deleteFollowingEmptyParagraph());
         select(editor, 0);
