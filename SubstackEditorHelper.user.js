@@ -15,7 +15,7 @@
 (function () {
     'use strict';
 
-    const executeAsyncDelay = 0;
+    const executeAsyncDelay = 1000;
     let editor;
     let moreButton;
     let addFootnoteButton;
@@ -47,26 +47,70 @@
         return newButtonGroup;
     }
 
+    async function getFootnoteButton() {
+        // Click the "More" button to show the dropdown menu
+        await executeAsync(() => moreButton.dispatchEvent(clickEvent), 0);
+
+        // Get all div elements in the document
+        var allPencrafts = document.querySelectorAll('div.pencraft');
+
+        // Iterate through them to find the one with "Footnote" as its content
+        for (let div of allPencrafts) {
+            if (div.textContent.trim() === "Footnote") {
+                console.log("Found the div with 'Footnote'");
+                const footnoteButton = div.parentElement;
+                console.log(footnoteButton);
+
+                // Click the "More" button again to hide the dropdown menu
+                await executeAsync(() => moreButton.dispatchEvent(clickEvent), 0);
+                return footnoteButton;
+            }
+        }
+        console.log('Footnote button not found');
+        // Click the "More" button again to hide the dropdown menu
+        await executeAsync(() => moreButton.dispatchEvent(clickEvent), 0);
+    }
+
+    async function initEditor() {
+        editor = document.querySelector('[data-testid="editor"]');
+        moreButton = document.querySelector('[data-testid="more-submenu"]');
+
+        if (!addFootnoteButton) {
+            addFootnoteButton = await getFootnoteButton();
+            if (!addFootnoteButton) {
+                console.log('addFootnoteButton not ready');
+                retryInitEditor();
+                return;
+            }
+        }
+
+        const tiptapMenu = document.querySelectorAll('.tiptap-menu');
+        if (tiptapMenu.length === 0) {
+            console.log('tiptapMenu not ready');
+            retryInitEditor();
+            return;
+        }
+
+        if (tiptapMenu[0].childNodes.length === 0) {
+            console.log('tiptapMenu\'s childNodes not ready');
+            retryInitEditor();
+            return;
+        }
+
+        const buttonGroups = tiptapMenu[0].childNodes[0];
+        const convertButton = createButton('Convert', convert);
+        const fnButton = createButton('Footnotes', searchAndAddAllFootnotes);
+        buttonGroups.appendChild(convertButton);
+        buttonGroups.appendChild(fnButton);
+    }
+
     // look for the last "<div class="tiptap-menu-button-group">", insert a new button after it
     // use setInterval to check if the button group is ready, until it's ready, then insert the new button and stop the interval
-    const addConvertButtonIntervalId = setInterval(() => {
-        const buttonGroups = document.querySelectorAll('.tiptap-menu-button-group');
-        if (buttonGroups.length > 0) {
-            const convertButton = createButton('Convert', convert);
-            const fnButton = createButton('Footnotes', searchAndAddAllFootnotes);
-            const lastButtonGroup = buttonGroups[buttonGroups.length - 1];
-            lastButtonGroup.parentNode.insertBefore(fnButton, lastButtonGroup.nextSibling);
-            lastButtonGroup.parentNode.insertBefore(convertButton, lastButtonGroup.nextSibling);
+    function retryInitEditor() {
+        setTimeout(async () => initEditor(), 500);
+    }
 
-            editor = document.querySelector('[data-testid="editor"]');
-            moreButton = document.querySelector('[data-testid="more-submenu"]');
-            addFootnoteButton = document.querySelector('div.tiptap-menu-button[title="Insert footnote"]');
-
-            clearInterval(addConvertButtonIntervalId);
-        } else {
-            console.log('Button group not ready');
-        }
-    }, 500);
+    retryInitEditor();
 
     const replacements = [
         {
@@ -193,6 +237,7 @@
 
         await executeAsync(() => moreButton.dispatchEvent(clickEvent));
         await executeAsync(() => addFootnoteButton.dispatchEvent(clickEvent));
+        await executeAsync(() => moreButton.dispatchEvent(clickEvent));
         await executeAsync(() => insertHtmlAtCursor(footnoteText));
         await executeAsync(() => deleteFollowingEmptyParagraph());
         select(editor, 0);
@@ -212,12 +257,12 @@
         }
     }
 
-    function executeAsync(callback) {
+    function executeAsync(callback, delayMs = executeAsyncDelay) {
         try {
             // console.log('executeAsync', callback.toString());
             callback();
             // console.log('executeAsync done', callback.toString());
-            return new Promise(resolve => setTimeout(resolve, executeAsyncDelay));
+            return new Promise(resolve => setTimeout(resolve, delayMs));
         } catch (e) {
             console.error(e);
             return Promise.reject(e);
