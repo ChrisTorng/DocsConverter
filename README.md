@@ -3,7 +3,7 @@ DocsConverter
 
 For [Google Docs](https://docs.google.com) to [Substack](https://substack.com) converting tool.
 
-[Visit DocsConverter site](https://christorng.github.io/DocsConverter/) / [view source](https://github.com/ChrisTorng/DocsConverter).
+[Visit DocsConverter site](https://christorng.idv.tw/DocsConverter/) / [view source](https://github.com/ChrisTorng/DocsConverter).
 
 Action Plan
 -----------
@@ -18,7 +18,7 @@ The new [Docs to HTML Converter](https://github.com/ChrisTorng/gd2md-html) is wo
 
 Currently, you can install the original [Docs to Markdown](https://workspace.google.com/marketplace/app/docs_to_markdown/700168918607) add-on instead. For any issue, reference to [Troubleshooting](https://github.com/evbacher/gd2md-html/wiki#troubleshooting).
 
-Install [Tampermonkey](https://www.tampermonkey.net/), then install [SubstackEditorHelper.user.js](https://christorng.github.io/DocsConverter/SubstackEditorHelper.user.js). You can update the script manually from the Tampermonkey Dashboard's Last Updated column, or it will update daily. You need to refresh Substack page to apply updated script.
+Install [Tampermonkey](https://www.tampermonkey.net/), then install [SubstackEditorHelper.user.js](https://christorng.idv.tw/DocsConverter/SubstackEditorHelper.user.js). You can update the script manually from the Tampermonkey Dashboard's Last Updated column, or it will update daily. You need to refresh Substack page to apply updated script.
 
 Test
 ----
